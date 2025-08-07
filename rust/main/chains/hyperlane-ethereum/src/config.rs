@@ -109,6 +109,17 @@ pub struct TransactionOverrides {
 
     /// Gas price cap, in wei.
     pub gas_price_cap: Option<U256>,
+
+    /// Weight of the previous gas price used when calculating the TWAP for
+    /// the gas price escalator.
+    pub gas_escalator_history_weight: Option<U256>,
+    /// Weight of the latest gas price sample used when calculating the TWAP
+    /// for the gas price escalator.
+    pub gas_escalator_current_weight: Option<U256>,
+    /// Multiplier denominator applied when escalating gas prices.
+    pub gas_escalator_multiplier_denominator: Option<U256>,
+    /// Multiplier numerator applied when escalating gas prices.
+    pub gas_escalator_multiplier_numerator: Option<U256>,
 }
 
 /// Ethereum reorg period
