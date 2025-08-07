@@ -1,4 +1,4 @@
-pub use escalator::escalate_gas_price_if_needed;
+pub use escalator::{escalate_gas_price_if_needed, GasEscalatorConfig};
 pub use estimator::estimate_gas_price;
 pub use price::{extract_gas_price, GasPrice};
 

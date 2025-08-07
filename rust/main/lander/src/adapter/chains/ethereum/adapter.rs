@@ -42,7 +42,7 @@ use super::{
     EthereumTxPrecursor,
 };
 
-use gas_price::GasPrice;
+use gas_price::{GasEscalatorConfig, GasPrice};
 
 mod gas_limit_estimator;
 mod gas_price;
@@ -140,8 +140,12 @@ impl EthereumAdapter {
         .await;
 
         // then, compare the estimated gas price with `current * escalation_multiplier`
-        let escalated_gas_price =
-            gas_price::escalate_gas_price_if_needed(&old_gas_price, &estimated_gas_price);
+        let escalator_config = GasEscalatorConfig::from(&self.transaction_overrides);
+        let escalated_gas_price = gas_price::escalate_gas_price_if_needed(
+            &old_gas_price,
+            &estimated_gas_price,
+            &escalator_config,
+        );
 
         let new_gas_price = match escalated_gas_price {
             GasPrice::None => estimated_gas_price,

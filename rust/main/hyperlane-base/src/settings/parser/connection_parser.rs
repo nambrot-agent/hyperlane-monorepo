@@ -114,6 +114,27 @@ pub fn build_ethereum_connection_conf(
                 .get_opt_key("gasPriceCap")
                 .parse_u256()
                 .end(),
+
+            gas_escalator_history_weight: value_parser
+                .chain(err)
+                .get_opt_key("gasEscalatorHistoryWeight")
+                .parse_u256()
+                .end(),
+            gas_escalator_current_weight: value_parser
+                .chain(err)
+                .get_opt_key("gasEscalatorCurrentWeight")
+                .parse_u256()
+                .end(),
+            gas_escalator_multiplier_denominator: value_parser
+                .chain(err)
+                .get_opt_key("gasEscalatorMultiplierDenominator")
+                .parse_u256()
+                .end(),
+            gas_escalator_multiplier_numerator: value_parser
+                .chain(err)
+                .get_opt_key("gasEscalatorMultiplierNumerator")
+                .parse_u256()
+                .end(),
         })
         .unwrap_or_default();
 
