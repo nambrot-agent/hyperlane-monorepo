@@ -266,7 +266,75 @@ contract MerkleRootMultisigIsmTest is AbstractMultisigIsmTest {
         vm.serializeString(prefixKey, "proof", proofString);
     }
 
-    // TODO: test merkleIndex != signedIndex
+    function test_verify_differentMerkleAndSignedIndex(
+        uint32 destination,
+        bytes32 recipient,
+        bytes calldata body1,
+        bytes calldata body2,
+        bytes calldata body3,
+        uint8 m,
+        uint8 n,
+        bytes32 seed
+    ) public {
+        vm.assume(0 < m && m <= n && n < MAX_VALIDATORS);
+
+        // Insert three messages to get different indices
+        bytes memory message1 = getMessage(destination, recipient, body1);
+        bytes memory message2 = getMessage(destination, recipient, body2);
+        bytes memory message3 = getMessage(destination, recipient, body3);
+
+        // Now create metadata for message1 (at index 0) but sign checkpoint for message3 (at index 2)
+        // This tests censorship resistance - proving an older message with a newer checkpoint
+        bytes32 digest;
+        bytes32 merkleTreeAddress = address(merkleTreeHook).addressToBytes32();
+        bytes32 signedMessageId;
+        uint32 signedCheckpointIndex;
+        {
+            uint32 domain = mailbox.localDomain();
+            // Use the checkpoint from after message3 was inserted
+            (bytes32 root, uint32 _signedIndex) = merkleTreeHook
+                .latestCheckpoint();
+            signedCheckpointIndex = _signedIndex;
+            signedMessageId = message3.id();
+
+            // Create digest for the signed checkpoint (message3, index 2)
+            digest = CheckpointLib.digest(
+                domain,
+                merkleTreeAddress,
+                root,
+                signedCheckpointIndex,
+                signedMessageId
+            );
+        }
+
+        uint256[] memory signers = ThresholdTestUtils.choose(
+            m,
+            addValidators(m, n, seed),
+            seed
+        );
+
+        // Create metadata for message1 but with checkpoint from message3
+        uint32 message1Index = 0;
+        bytes32[32] memory proofForMessage1 = merkleTreeHook.proofFor(message1Index);
+
+        bytes memory metadata = abi.encodePacked(
+            merkleTreeAddress,
+            message1Index, // messageIndex = 0 (for message1)
+            signedMessageId, // signedMessageId from message3
+            proofForMessage1,
+            signedCheckpointIndex // signedIndex = 2 (from message3 checkpoint)
+        );
+
+        // Add signatures
+        for (uint256 i = 0; i < m; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(signers[i], digest);
+            metadata = abi.encodePacked(metadata, r, s, v);
+        }
+
+        // Verify should succeed even though messageIndex (0) != signedIndex (2)
+        assertTrue(ism.verify(metadata, message1));
+    }
+
     function metadataPrefix(
         bytes memory message
     ) internal override returns (bytes memory) {
