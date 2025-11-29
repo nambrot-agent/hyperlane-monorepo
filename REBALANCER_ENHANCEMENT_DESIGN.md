@@ -103,7 +103,7 @@ interface IRebalancingMethod {
 
 **Implementations**:
 - **WarpRouteMethod**: Tracks via Hyperlane message ID (Explorer API)
-- **CCTPMethod**: Tracks indirectly by monitoring destination collateral increases
+- **CCTPMethod**: Tracks via timeout-based approach (assume complete after 25 minutes)
 - **Future: InventoryMethod**: Tracks offchain bridge provider APIs
 
 #### 4. RebalancingTracker (NEW)
@@ -158,8 +158,14 @@ Each rebalancing method returns a receipt:
 }
 ```
 
-**Warp Route Tracking**: Query Explorer API with message ID
-**CCTP Tracking**: Compare destination collateral before/after, mark complete when increased
+**Warp Route Tracking**: Query Explorer API with message ID, check delivery status
+
+**CCTP Tracking**: Use timeout-based approach
+- CCTP transfers complete in ~20 minutes maximum
+- Mark as pending for 25 minutes after initiation
+- After timeout, consider complete (or failed - will be detected and retried)
+- Rationale: Cannot reliably track via collateral monitoring due to concurrent transfers
+- Alternative considered: Query Circle's attestation service (adds complexity, defer to future)
 
 ### Configuration Changes
 
@@ -207,9 +213,8 @@ strategy:
 ## Open Questions
 
 1. **Explorer API specifics**: What's the actual endpoint and response format?
-2. **CCTP tracking reliability**: Is collateral-based tracking sufficient or do we need better method?
-3. **Multiple pending to same destination**: How do we handle multiple concurrent rebalances to the same chain?
-4. **Timeout handling**: When do we consider a pending rebalance "stuck" and retry?
+2. **Multiple pending to same destination**: How do we handle multiple concurrent rebalances to the same chain?
+3. **Warp route tracking timeout**: When do we consider a warp route rebalance "stuck" and retry? (CCTP uses 25min timeout)
 
 ## Future Extensions (Out of Scope)
 
